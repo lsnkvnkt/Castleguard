@@ -1,0 +1,21 @@
+@HostAddress = http://localhost:5228
+
+GET {{HostAddress}}/api/ping/
+Accept: application/json
+
+###
+
+GET {{HostAddress}}/api/vault
+Accept: application/json
+
+###
+
+POST {{HostAddress}}/api/vault
+Content-Type: application/json
+
+{
+    "Id": 2,
+    "Name": "Mike"
+}
+
+###
