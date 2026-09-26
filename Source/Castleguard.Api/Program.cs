@@ -1,8 +1,11 @@
+using Castleguard.Api;
 using Microsoft.AspNetCore.Http.HttpResults;
+using VaultItem = Castleguard.Api.VaultService.VaultItem;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+builder.Services.AddSingleton<VaultService>();
 
 var app = builder.Build();
 
@@ -13,57 +16,42 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var vaultItems = new List<VaultItem>()
-{
-    new(0, "Steve"),
-    new(1, "Michael"),
-};
-
 app.MapGet("/api/ping", () => new
 {
     status = "OK"
 });
 
-app.MapGet("/api/vault", Ok<List<VaultItem>> () => TypedResults.Ok(vaultItems));
-
-app.MapGet("/api/vault/{id:int}", Results<Ok<VaultItem>, NotFound> (int id) =>
+app.MapGet("/api/vault", Ok<List<VaultItem>> (VaultService vaultService) =>
 {
-    var item = vaultItems.Find(x => x.Id == id);
+    var items = vaultService.GetVaultItems();
+    return TypedResults.Ok(items);
+});
+
+app.MapGet("/api/vault/{id:int}", Results<Ok<VaultItem>, NotFound> (VaultService vaultService, int id) =>
+{
+    var item = vaultService.GetVaultItem(id);
     return item is null ? TypedResults.NotFound() :  TypedResults.Ok(item);
 });
 
-app.MapPost("/api/vault", (CreateVaultItemDto dto) =>
+app.MapPost("/api/vault", Ok<VaultItem> (VaultService vaultService, CreateVaultItemDto dto) =>
 {
-    var id = Random.Shared.Next();
-    while (vaultItems.Any(x => x.Id == id))
-        id = Random.Shared.Next();
-    
-    var item = new VaultItem(id, dto.Name);
-    vaultItems.Add(item);
+    var item = vaultService.CreateVaultItem(dto.Name);
     return TypedResults.Ok(item);
 });
 
-app.MapPut("/api/vault/{id:int}", Results<Ok<VaultItem>, NotFound> (UpdateVaultItemDto dto, int id) =>
+app.MapPut("/api/vault/{id:int}", Results<Ok<VaultItem>, NotFound> (VaultService vaultService, UpdateVaultItemDto dto, int id) =>
 {
-    var index = vaultItems.FindIndex(x => x.Id == id);
-    if (index is -1)
-        return TypedResults.NotFound();
-    
-    return TypedResults.Ok(vaultItems[index] = new VaultItem(id, dto.Name));
+    var item = vaultService.EditVaultItemName(id, dto.Name);
+    return item is null ? TypedResults.NotFound() : TypedResults.Ok(item);
 });
 
-app.MapDelete("/api/vault/{id:int}", Results<NoContent, NotFound> (int id) =>
+app.MapDelete("/api/vault/{id:int}", Results<NoContent, NotFound> (VaultService vaultService, int id) =>
 {
-    var item = vaultItems.Find(x => x.Id == id);
-    if (item is null)
-        return TypedResults.NotFound();
-    
-    vaultItems.Remove(item);
-    return TypedResults.NoContent();
+    var item = vaultService.DeleteVaultItem(id);
+    return item is null ? TypedResults.NotFound() : TypedResults.NoContent();
 });
 
 app.Run();
 
 internal record CreateVaultItemDto(string Name);
 internal record UpdateVaultItemDto(string Name);
-internal record VaultItem(int Id, string Name);
