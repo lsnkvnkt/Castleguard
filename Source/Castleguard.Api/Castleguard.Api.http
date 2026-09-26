@@ -10,12 +10,28 @@ Accept: application/json
 
 ###
 
+GET {{HostAddress}}/api/vault/1
+Accept: application/json
+
+###
+
 POST {{HostAddress}}/api/vault
 Content-Type: application/json
 
 {
-    "Id": 2,
     "Name": "Mike"
 }
 
 ###
+
+PUT {{HostAddress}}/api/vault/1
+Content-Type: application/json
+
+{
+  "Name": "Peter"
+}
+
+###
+
+DELETE {{HostAddress}}/api/vault/1
+Accept: application/json
