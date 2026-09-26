@@ -1,6 +1,17 @@
 namespace Castleguard.Api;
 
-internal class VaultService
+internal record VaultItem(int Id, string Name);
+
+internal interface IVaultService
+{
+    List<VaultItem> GetVaultItems();
+    VaultItem? GetVaultItem(int id);
+    VaultItem CreateVaultItem(string name);
+    VaultItem? EditVaultItemName(int id, string newName);
+    VaultItem? DeleteVaultItem(int id);
+}
+
+internal class VaultService : IVaultService
 {
     private List<VaultItem> _vaultItems =
     [
@@ -8,13 +19,13 @@ internal class VaultService
         new(1, "Michael")
     ];
 
-    internal List<VaultItem> GetVaultItems()
+    public List<VaultItem> GetVaultItems()
         => _vaultItems;
-    
-    internal VaultItem? GetVaultItem(int id)
+
+    public VaultItem? GetVaultItem(int id)
         => _vaultItems.Find(x => x.Id == id);
-    
-    internal VaultItem CreateVaultItem(string name)
+
+    public VaultItem CreateVaultItem(string name)
     {
         var id = Random.Shared.Next();
         while (_vaultItems.Any(x => x.Id == id))
@@ -25,7 +36,7 @@ internal class VaultService
         return item;
     }
 
-    internal VaultItem? EditVaultItemName(int id, string newName)
+    public VaultItem? EditVaultItemName(int id, string newName)
     {
         var index = _vaultItems.FindIndex(x => x.Id == id);
         if (index == -1)
@@ -36,7 +47,7 @@ internal class VaultService
         return item;
     }
 
-    internal VaultItem? DeleteVaultItem(int id)
+    public VaultItem? DeleteVaultItem(int id)
     {
         var item = _vaultItems.Find(x => x.Id == id);
         if (item is null)
@@ -45,6 +56,4 @@ internal class VaultService
         _vaultItems.Remove(item);
         return item;
     }
-    
-    internal record VaultItem(int Id, string Name);
 }
