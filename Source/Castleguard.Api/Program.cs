@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
-builder.Services.AddSingleton<IVaultService, VaultService>();
+builder.Services.AddSingleton<IVaultService, TestVaultService>();
 
 var app = builder.Build();
 
