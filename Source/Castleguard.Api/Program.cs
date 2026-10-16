@@ -1,10 +1,13 @@
 using Castleguard.Api;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton<IVaultService, TestVaultService>();
+builder.Services.AddDbContext<CastleguardDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Castleguard")));
 
 var app = builder.Build();
 
