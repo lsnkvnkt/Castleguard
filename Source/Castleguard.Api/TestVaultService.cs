@@ -8,13 +8,13 @@ internal class TestVaultService : IVaultService
         new(21, "Rose")
     ];
 
-    public List<VaultItem> GetVaultItems()
-        => _vaultItems;
+    public Task<List<VaultItem>> GetVaultItemsAsync()
+        => Task.FromResult(_vaultItems);
 
-    public VaultItem? GetVaultItem(int id)
-        => _vaultItems.Find(x => x.Id == id);
+    public Task<VaultItem?> GetVaultItemAsync(int id)
+        => Task.FromResult(_vaultItems.Find(x => x.Id == id));
 
-    public VaultItem CreateVaultItem(string name)
+    public Task<VaultItem> CreateVaultItemAsync(string name)
     {
         var id = Random.Shared.Next();
         while (_vaultItems.Any(x => x.Id == id))
@@ -22,27 +22,27 @@ internal class TestVaultService : IVaultService
 
         var item = new VaultItem(id, name);
         _vaultItems.Add(item);
-        return item;
+        return Task.FromResult(item);
     }
 
-    public VaultItem? EditVaultItemName(int id, string newName)
+    public Task<VaultItem?> EditVaultItemNameAsync(int id, string newName)
     {
         var index = _vaultItems.FindIndex(x => x.Id == id);
         if (index == -1)
-            return null;
+            return Task.FromResult<VaultItem?>(null);
         
         var item = new VaultItem(id, newName);
         _vaultItems[index] = item;
-        return item;
+        return Task.FromResult<VaultItem?>(item);
     }
 
-    public VaultItem? DeleteVaultItem(int id)
+    public Task<VaultItem?> DeleteVaultItemAsync(int id)
     {
         var item = _vaultItems.Find(x => x.Id == id);
         if (item is null)
-            return null;
+            return Task.FromResult<VaultItem?>(null);
         
         _vaultItems.Remove(item);
-        return item;
+        return Task.FromResult<VaultItem?>(item);
     }
 }

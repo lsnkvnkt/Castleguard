@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
-builder.Services.AddSingleton<IVaultService, TestVaultService>();
+builder.Services.AddScoped<IVaultService, VaultService>();
 builder.Services.AddDbContext<CastleguardDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Castleguard")));
 
@@ -23,33 +23,33 @@ app.MapGet("/api/ping", () => new
     status = "OK"
 });
 
-app.MapGet("/api/vault", Ok<List<VaultItem>> (IVaultService vaultService) =>
+app.MapGet("/api/vault", async Task<Ok<List<VaultItem>>> (IVaultService vaultService) =>
 {
-    var items = vaultService.GetVaultItems();
+    var items = await vaultService.GetVaultItemsAsync();
     return TypedResults.Ok(items);
 });
 
-app.MapGet("/api/vault/{id:int}", Results<Ok<VaultItem>, NotFound> (IVaultService vaultService, int id) =>
+app.MapGet("/api/vault/{id:int}", async Task<Results<Ok<VaultItem>, NotFound>> (IVaultService vaultService, int id) =>
 {
-    var item = vaultService.GetVaultItem(id);
-    return item is null ? TypedResults.NotFound() :  TypedResults.Ok(item);
-});
-
-app.MapPost("/api/vault", Ok<VaultItem> (IVaultService vaultService, CreateVaultItemDto dto) =>
-{
-    var item = vaultService.CreateVaultItem(dto.Name);
-    return TypedResults.Ok(item);
-});
-
-app.MapPut("/api/vault/{id:int}", Results<Ok<VaultItem>, NotFound> (IVaultService vaultService, UpdateVaultItemDto dto, int id) =>
-{
-    var item = vaultService.EditVaultItemName(id, dto.Name);
+    var item = await vaultService.GetVaultItemAsync(id);
     return item is null ? TypedResults.NotFound() : TypedResults.Ok(item);
 });
 
-app.MapDelete("/api/vault/{id:int}", Results<NoContent, NotFound> (IVaultService vaultService, int id) =>
+app.MapPost("/api/vault", async Task<Ok<VaultItem>> (IVaultService vaultService, CreateVaultItemDto dto) =>
 {
-    var item = vaultService.DeleteVaultItem(id);
+    var item = await vaultService.CreateVaultItemAsync(dto.Name);
+    return TypedResults.Ok(item);
+});
+
+app.MapPut("/api/vault/{id:int}", async Task<Results<Ok<VaultItem>, NotFound>> (IVaultService vaultService, UpdateVaultItemDto dto, int id) =>
+{
+    var item = await vaultService.EditVaultItemNameAsync(id, dto.Name);
+    return item is null ? TypedResults.NotFound() : TypedResults.Ok(item);
+});
+
+app.MapDelete("/api/vault/{id:int}", async Task<Results<NoContent, NotFound>> (IVaultService vaultService, int id) =>
+{
+    var item = await vaultService.DeleteVaultItemAsync(id);
     return item is null ? TypedResults.NotFound() : TypedResults.NoContent();
 });
 
