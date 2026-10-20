@@ -1,3 +1,7 @@
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("Castleguard.Tests")]
+
 namespace Castleguard.Api;
 
 internal class TestVaultService : IVaultService
