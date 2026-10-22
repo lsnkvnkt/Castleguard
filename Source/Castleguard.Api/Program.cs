@@ -35,15 +35,21 @@ app.MapGet("/api/vault/{id:int}", async Task<Results<Ok<VaultItem>, NotFound>> (
     return item is null ? TypedResults.NotFound() : TypedResults.Ok(item);
 });
 
-app.MapPost("/api/vault", async Task<Ok<VaultItem>> (IVaultService vaultService, CreateVaultItemDto dto) =>
+app.MapPost("/api/vault", async Task<Results<Ok<VaultItem>, BadRequest>> (IVaultService vaultService, CreateVaultItemDto dto) =>
 {
-    var item = await vaultService.CreateVaultItemAsync(dto.Name);
+    if (!VaultItemEntity.IsValidName(dto.Name))
+        return TypedResults.BadRequest();
+    
+    var item = await vaultService.CreateVaultItemAsync(dto.Name!);
     return TypedResults.Ok(item);
 });
 
-app.MapPut("/api/vault/{id:int}", async Task<Results<Ok<VaultItem>, NotFound>> (IVaultService vaultService, UpdateVaultItemDto dto, int id) =>
+app.MapPut("/api/vault/{id:int}", async Task<Results<Ok<VaultItem>, NotFound, BadRequest>> (IVaultService vaultService, UpdateVaultItemDto dto, int id) =>
 {
-    var item = await vaultService.EditVaultItemNameAsync(id, dto.Name);
+    if (!VaultItemEntity.IsValidName(dto.Name))
+        return TypedResults.BadRequest();
+    
+    var item = await vaultService.EditVaultItemNameAsync(id, dto.Name!);
     return item is null ? TypedResults.NotFound() : TypedResults.Ok(item);
 });
 
@@ -55,5 +61,5 @@ app.MapDelete("/api/vault/{id:int}", async Task<Results<NoContent, NotFound>> (I
 
 app.Run();
 
-internal record CreateVaultItemDto(string Name);
-internal record UpdateVaultItemDto(string Name);
+internal record CreateVaultItemDto(string? Name);
+internal record UpdateVaultItemDto(string? Name);

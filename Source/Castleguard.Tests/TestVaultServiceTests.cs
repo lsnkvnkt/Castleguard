@@ -4,17 +4,19 @@ namespace Castleguard.Tests;
 
 public class TestVaultServiceTest
 {
-    [Fact]
-    public async Task CreateVaultItemAsync_AddsItemToList()
+    [Theory]
+    [InlineData("Castleguard")]
+    public async Task CreateVaultItemAsync_WithValidInput_ReturnsVaultItem(string name)
     {
+        // Arrange.
         var service = new TestVaultService();
-        const string name = "Castleguard";
+        
+        // Act.
         var item = await service.CreateVaultItemAsync(name);
-        
-        Assert.Equal(name, item.Name);
-        
         var items = await service.GetVaultItemsAsync();
         
+        // Assert.
+        Assert.Equal(name, item.Name);
         Assert.Contains(items, x => x.Name == item.Name && x.Id == item.Id);
     }
 }
