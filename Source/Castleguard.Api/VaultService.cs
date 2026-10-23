@@ -30,21 +30,27 @@ internal class VaultService(CastleguardDbContext dbContext) : IVaultService
 
     public async Task<VaultItem> CreateVaultItemAsync(string name)
     {
-        var entity = new VaultItemEntity() { Name = name };
+        if (!VaultItemEntity.IsValidName(name))
+            throw new ArgumentException("The name is invalid. It must be a non-empty string with a maximum length of 64 characters.");
+        
+        var entity = new VaultItemEntity() { Name = name.Trim() };
 
         dbContext.VaultItems.Add(entity);
         await dbContext.SaveChangesAsync();
 
-        return new VaultItem(entity.Id, name);
+        return new VaultItem(entity.Id, entity.Name);
     }
 
     public async Task<VaultItem?> EditVaultItemNameAsync(int id, string newName)
     {
+        if (!VaultItemEntity.IsValidName(newName))
+            throw new ArgumentException("The name is invalid. It must be a non-empty string with a maximum length of 64 characters.");
+        
         var entity = await dbContext.VaultItems.FindAsync(id);
         if (entity is null)
             return null;
         
-        entity.Name = newName;
+        entity.Name = newName.Trim();
         await dbContext.SaveChangesAsync();
 
         return new VaultItem(entity.Id, entity.Name);
