@@ -14,5 +14,5 @@ public static class VaultItemValidator
             : new ValidationResult(true, null);
     }
 
-    public readonly record struct ValidationResult(bool IsValid, string? ErrorMessage);
+    public readonly record struct ValidationResult(bool IsValid, string? ErrorMessage = null);
 }

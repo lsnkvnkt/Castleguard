@@ -45,7 +45,7 @@ internal class VaultService(CastleguardDbContext dbContext) : IVaultService
     public async Task<VaultItem?> EditVaultItemNameAsync(int id, string newName)
     {
         var validationResult = VaultItemValidator.ValidateName(newName);
-        if (validationResult.IsValid)
+        if (!validationResult.IsValid)
             throw new ArgumentException(validationResult.ErrorMessage);
         
         var entity = await dbContext.VaultItems.FindAsync(id);
