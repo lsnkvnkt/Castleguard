@@ -20,8 +20,9 @@ internal class TestVaultService : IVaultService
 
     public Task<VaultItem> CreateVaultItemAsync(string name)
     {
-        if (!VaultItemEntity.IsValidName(name))
-            throw new ArgumentException("The name is invalid. It must be a non-empty string with a maximum length of 64 characters.");
+        var validationResult = VaultItemValidator.ValidateName(name);
+        if (!validationResult.IsValid)
+            throw new ArgumentException(validationResult.ErrorMessage);
         
         var id = Random.Shared.Next();
         while (_vaultItems.Any(x => x.Id == id))
@@ -34,8 +35,9 @@ internal class TestVaultService : IVaultService
 
     public Task<VaultItem?> EditVaultItemNameAsync(int id, string newName)
     {
-        if (!VaultItemEntity.IsValidName(newName))
-            throw new ArgumentException("The name is invalid. It must be a non-empty string with a maximum length of 64 characters.");
+        var validationResult = VaultItemValidator.ValidateName(newName);
+        if (!validationResult.IsValid)
+            throw new ArgumentException(validationResult.ErrorMessage);
         
         var index = _vaultItems.FindIndex(x => x.Id == id);
         if (index == -1)

@@ -37,8 +37,9 @@ app.MapGet("/api/vault/{id:int}", async Task<Results<Ok<VaultItem>, NotFound>> (
 
 app.MapPost("/api/vault", async Task<Results<Ok<VaultItem>, BadRequest<string>>> (IVaultService vaultService, CreateVaultItemDto dto) =>
 {
-    if (!VaultItemEntity.IsValidName(dto.Name))
-        return TypedResults.BadRequest("The name is invalid. It must be a non-empty string with a maximum length of 64 characters.");
+    var validationResult = VaultItemValidator.ValidateName(dto.Name);
+    if (!validationResult.IsValid)
+        return TypedResults.BadRequest(validationResult.ErrorMessage);
     
     var item = await vaultService.CreateVaultItemAsync(dto.Name!);
     return TypedResults.Ok(item);
@@ -46,8 +47,9 @@ app.MapPost("/api/vault", async Task<Results<Ok<VaultItem>, BadRequest<string>>>
 
 app.MapPut("/api/vault/{id:int}", async Task<Results<Ok<VaultItem>, NotFound, BadRequest<string>>> (IVaultService vaultService, UpdateVaultItemDto dto, int id) =>
 {
-    if (!VaultItemEntity.IsValidName(dto.Name))
-        return TypedResults.BadRequest("The name is invalid. It must be a non-empty string with a maximum length of 64 characters.");
+    var validationResult = VaultItemValidator.ValidateName(dto.Name);
+    if (!validationResult.IsValid)
+        return TypedResults.BadRequest(validationResult.ErrorMessage);
     
     var item = await vaultService.EditVaultItemNameAsync(id, dto.Name!);
     return item is null ? TypedResults.NotFound() : TypedResults.Ok(item);
