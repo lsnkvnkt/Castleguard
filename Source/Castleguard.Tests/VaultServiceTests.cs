@@ -8,7 +8,7 @@ public class VaultServiceTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData(" ")]
-    public async Task CreateVaultItemAsync_WithInvalidInput_ThrowsValidationException(string? name)
+    public async Task CreateVaultItemAsync_WithEmptyInput_ThrowsValidationException(string? name)
     {
         // Arrange.
         var service = new TestVaultService();
@@ -18,6 +18,21 @@ public class VaultServiceTests
         
         // Assert.
         var exception = await Assert.ThrowsAsync<ArgumentException>(action);
-        Assert.Equal("The name is invalid. It must be a non-empty string with a maximum length of 64 characters.", exception.Message);
+        Assert.Equal($"Name must not be empty.", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("65TestofmaxlenghtTestofmaxlenghtTestofmaxlenghtestofmaxlenght0123")]
+    public async Task CreateVaultItemAsync_WithInvalidInputLength_ThrowsValidationException(string? name)
+    {
+        // Arrange.
+        var service = new TestVaultService();
+        
+        // Act.
+        var action = new Func<Task>(async () => await service.CreateVaultItemAsync(name!));
+        
+        // Assert.
+        var exception = await Assert.ThrowsAsync<ArgumentException>(action);
+        Assert.Equal($"Name must not exceed 64 characters.", exception.Message);
     }
 }
