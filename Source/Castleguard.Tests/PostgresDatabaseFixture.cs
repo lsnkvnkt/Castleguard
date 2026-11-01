@@ -15,7 +15,7 @@ public class PostgresDatabaseFixture : IAsyncLifetime
     private DbContextOptions<CastleguardDbContext> DbContextOptions { get; }
     private readonly ServiceProvider _serviceProvider;
 
-    public CastleguardDbContext CreateDbContext() => new(DbContextOptions);
+    private CastleguardDbContext CreateDbContext() => new(DbContextOptions);
     
     public IServiceScope CreateScope() =>  _serviceProvider.CreateScope();
 
