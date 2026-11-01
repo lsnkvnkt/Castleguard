@@ -1,6 +1,7 @@
 using Castleguard.Api;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Castleguard.Tests;
 
@@ -12,8 +13,11 @@ public class PostgresDatabaseFixture : IAsyncLifetime
 
     private string ConnectionString { get; }
     private DbContextOptions<CastleguardDbContext> DbContextOptions { get; }
+    private readonly ServiceProvider _serviceProvider;
 
     public CastleguardDbContext CreateDbContext() => new(DbContextOptions);
+    
+    public IServiceScope CreateScope() =>  _serviceProvider.CreateScope();
 
     public async ValueTask InitializeAsync()
     {
@@ -23,10 +27,12 @@ public class PostgresDatabaseFixture : IAsyncLifetime
         
         await dbContext.Database.MigrateAsync();
     }
-
-#pragma warning disable CA1816
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-#pragma warning restore CA1816
+    
+    public async ValueTask DisposeAsync()
+    {
+        await _serviceProvider.DisposeAsync();
+        GC.SuppressFinalize(this);
+    }
     
     public PostgresDatabaseFixture()
     {
@@ -38,5 +44,10 @@ public class PostgresDatabaseFixture : IAsyncLifetime
                            ?? throw new InvalidOperationException("ConnectionString not found.");
         
         DbContextOptions = new DbContextOptionsBuilder<CastleguardDbContext>().UseNpgsql(ConnectionString).Options;
+
+        var serviceProvider = new ServiceCollection();
+        serviceProvider.AddScoped<IVaultService, VaultService>();
+        serviceProvider.AddDbContext<CastleguardDbContext>(options => options.UseNpgsql(ConnectionString));
+        _serviceProvider = serviceProvider.BuildServiceProvider();
     }
 }

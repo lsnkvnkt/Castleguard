@@ -1,13 +1,19 @@
+using Castleguard.Api;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Castleguard.Tests;
 
 public class PostgresIntegrationTests(PostgresDatabaseFixture fixture) : IClassFixture<PostgresDatabaseFixture>
 {
     [Fact]
-    public async Task SmokeTest()
+    public void SmokeTest()
     {
-        await using var dbContext = fixture.CreateDbContext();
-        var items = await dbContext.VaultItems.ToListAsync();
+        // Arrange.
+        using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<CastleguardDbContext>();
+        
+        // Act & Assert.
+        Assert.Equal("castleguard_test", context.Database.GetDbConnection().Database);
     }
 }
