@@ -9,26 +9,91 @@ public class PostgresIntegrationTests(PostgresDatabaseFixture fixture) : IClassF
     [Fact]
     public async Task CreateVaultItemAsync_WithValidInput_PersistsAndReturnsVaultItem()
     {
-        using var scope = fixture.CreateScope();
-        var service = scope.ServiceProvider.GetRequiredService<IVaultService>();
-
-        var dbContext = scope.ServiceProvider.GetRequiredService<CastleguardDbContext>();
-        VaultItemEntity? entity = null;
+        int? createdItemId = null;
         try
         {
-            var item = await service.CreateVaultItemAsync("CastleguardIntegrationTestUser");
-            
-            entity = await dbContext.VaultItems.FindAsync([item.Id], TestContext.Current.CancellationToken);
-            Assert.NotNull(entity);
-            Assert.Equal("CastleguardIntegrationTestUser", item.Name);
-            Assert.True(item.Id > 0);
+            var name = $"IntegrationTest_{Guid.NewGuid():N}";
+            using (var scope = fixture.CreateScope())
+            {
+                var service = scope.ServiceProvider.GetRequiredService<IVaultService>();
+                var item = await service.CreateVaultItemAsync(name);
+                createdItemId = item.Id;
+            }
+
+            using (var scope = fixture.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<CastleguardDbContext>();
+                
+                var entity = await dbContext.VaultItems.FindAsync([createdItemId], TestContext.Current.CancellationToken);
+                Assert.NotNull(entity);
+                Assert.Equal(name, entity.Name);
+                Assert.True(entity.Id > 0);
+            }
         }
         finally
         {
-            if (entity != null)
+            if (createdItemId is { } id)
             {
-                dbContext.VaultItems.Remove(entity);
-                await dbContext.SaveChangesAsync(CancellationToken.None);
+                using var scope = fixture.CreateScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<CastleguardDbContext>();
+
+                var entity = await dbContext.VaultItems.FindAsync([id], CancellationToken.None);
+                if (entity != null)
+                {
+                    dbContext.VaultItems.Remove(entity);
+                    await dbContext.SaveChangesAsync(CancellationToken.None);
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public async Task EditVaultItemNameAsync_WithValidInput_UpdatesVaultItemName()
+    {
+        int? createdItemId = null;
+        using (var scope = fixture.CreateScope())
+        {
+            var item = new VaultItemEntity() { Name = $"IntegrationTest_{Guid.NewGuid():N}" };
+            
+            var dbContext = scope.ServiceProvider.GetRequiredService<CastleguardDbContext>();
+            dbContext.VaultItems.Add(item);
+            await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+            
+            createdItemId = item.Id;
+        }
+        
+        try
+        {
+            var newName = $"IntegrationTest_{Guid.NewGuid():N}";
+            using (var scope = fixture.CreateScope())
+            {
+                var service = scope.ServiceProvider.GetRequiredService<IVaultService>();
+                await service.EditVaultItemNameAsync(createdItemId.Value, newName);
+            }
+
+            using (var scope = fixture.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<CastleguardDbContext>();
+
+                var entity = await dbContext.VaultItems.FindAsync([createdItemId], TestContext.Current.CancellationToken);
+                Assert.NotNull(entity);
+                Assert.Equal(createdItemId, entity.Id);
+                Assert.Equal(newName, entity.Name);
+            }
+        }
+        finally
+        {
+            if (createdItemId is { } id)
+            {
+                using var scope = fixture.CreateScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<CastleguardDbContext>();
+
+                var entity = await dbContext.VaultItems.FindAsync([id], CancellationToken.None);
+                if (entity != null)
+                {
+                    dbContext.VaultItems.Remove(entity);
+                    await dbContext.SaveChangesAsync(CancellationToken.None);
+                }
             }
         }
     }
