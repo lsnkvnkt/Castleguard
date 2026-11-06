@@ -7,6 +7,79 @@ namespace Castleguard.Tests;
 public class PostgresIntegrationTests(PostgresDatabaseFixture fixture) : IClassFixture<PostgresDatabaseFixture>
 {
     [Fact]
+    public async Task GetVaultItemsAsync_WithExistingItem_ReturnsItemAmongResults()
+    {
+        var item = new VaultItemEntity() { Name = $"IntegrationTest_{Guid.NewGuid():N}" };
+        try
+        {
+            using (var scope = fixture.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<CastleguardDbContext>();
+                dbContext.VaultItems.Add(item);
+                await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+            }
+
+            using (var scope = fixture.CreateScope())
+            {
+                var service = scope.ServiceProvider.GetRequiredService<IVaultService>();
+
+                var entities = await service.GetVaultItemsAsync();
+                Assert.NotNull(entities);
+                Assert.Contains(entities, x => x.Id == item.Id && x.Name == item.Name);
+            }
+        }
+        finally
+        {
+            using var scope = fixture.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<CastleguardDbContext>();
+            
+            var entity = await dbContext.VaultItems.FindAsync([item.Id], CancellationToken.None);
+            if (entity != null)
+            {
+                dbContext.VaultItems.Remove(entity);
+                await dbContext.SaveChangesAsync(CancellationToken.None);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task GetVaultItemAsync_WithExistingItem_ReturnsVaultItem()
+    {
+        var item = new VaultItemEntity() { Name = $"IntegrationTest_{Guid.NewGuid():N}" };
+        try
+        {
+            using (var scope = fixture.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<CastleguardDbContext>();
+                dbContext.VaultItems.Add(item);
+                await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+            }
+
+            using (var scope = fixture.CreateScope())
+            {
+                var service = scope.ServiceProvider.GetRequiredService<IVaultService>();
+
+                var entity = await service.GetVaultItemAsync(item.Id);
+                Assert.NotNull(entity);
+                Assert.Equal(item.Id, entity.Id);
+                Assert.Equal(item.Name, entity.Name);
+            }
+        }
+        finally
+        {
+            using var scope = fixture.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<CastleguardDbContext>();
+            
+            var entity = await dbContext.VaultItems.FindAsync([item.Id], CancellationToken.None);
+            if (entity != null)
+            {
+                dbContext.VaultItems.Remove(entity);
+                await dbContext.SaveChangesAsync(CancellationToken.None);
+            }
+        }
+    }
+    
+    [Fact]
     public async Task CreateVaultItemAsync_WithValidInput_PersistsAndReturnsVaultItem()
     {
         int? createdItemId = null;
@@ -51,19 +124,19 @@ public class PostgresIntegrationTests(PostgresDatabaseFixture fixture) : IClassF
     public async Task EditVaultItemNameAsync_WithValidInput_UpdatesVaultItemName()
     {
         int? createdItemId = null;
-        using (var scope = fixture.CreateScope())
-        {
-            var item = new VaultItemEntity() { Name = $"IntegrationTest_{Guid.NewGuid():N}" };
-            
-            var dbContext = scope.ServiceProvider.GetRequiredService<CastleguardDbContext>();
-            dbContext.VaultItems.Add(item);
-            await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
-            
-            createdItemId = item.Id;
-        }
-        
         try
         {
+            using (var scope = fixture.CreateScope())
+            {
+                var item = new VaultItemEntity() { Name = $"IntegrationTest_{Guid.NewGuid():N}" };
+            
+                var dbContext = scope.ServiceProvider.GetRequiredService<CastleguardDbContext>();
+                dbContext.VaultItems.Add(item);
+                await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+            
+                createdItemId = item.Id;
+            }
+
             var newName = $"IntegrationTest_{Guid.NewGuid():N}";
             using (var scope = fixture.CreateScope())
             {
@@ -101,24 +174,24 @@ public class PostgresIntegrationTests(PostgresDatabaseFixture fixture) : IClassF
     [Fact]
     public async Task DeleteVaultItemAsync_WithExistingId_DeletesVaultItem()
     {
-        int createdItemId;
-        using (var scope = fixture.CreateScope())
-        {
-            var item = new VaultItemEntity() { Name = $"IntegrationTest_{Guid.NewGuid():N}" };
-            
-            var dbContext = scope.ServiceProvider.GetRequiredService<CastleguardDbContext>();
-            dbContext.VaultItems.Add(item);
-            await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
-            
-            createdItemId = item.Id;
-        }
-
+        int? createdItemId = null;
         try
         {
             using (var scope = fixture.CreateScope())
             {
+                var item = new VaultItemEntity() { Name = $"IntegrationTest_{Guid.NewGuid():N}" };
+            
+                var dbContext = scope.ServiceProvider.GetRequiredService<CastleguardDbContext>();
+                dbContext.VaultItems.Add(item);
+                await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+            
+                createdItemId = item.Id;
+            }
+            
+            using (var scope = fixture.CreateScope())
+            {
                 var service = scope.ServiceProvider.GetRequiredService<IVaultService>();
-                await service.DeleteVaultItemAsync(createdItemId);
+                await service.DeleteVaultItemAsync(createdItemId.Value);
             }
 
             using (var scope = fixture.CreateScope())
@@ -131,14 +204,17 @@ public class PostgresIntegrationTests(PostgresDatabaseFixture fixture) : IClassF
         }
         finally
         {
-            using var scope = fixture.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<CastleguardDbContext>();
-            
-            var entity = await dbContext.VaultItems.FindAsync([createdItemId], CancellationToken.None);
-            if (entity != null)
+            if (createdItemId is { } id)
             {
-                dbContext.VaultItems.Remove(entity);
-                await dbContext.SaveChangesAsync(CancellationToken.None);
+                using var scope = fixture.CreateScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<CastleguardDbContext>();
+
+                var entity = await dbContext.VaultItems.FindAsync([id], CancellationToken.None);
+                if (entity != null)
+                {
+                    dbContext.VaultItems.Remove(entity);
+                    await dbContext.SaveChangesAsync(CancellationToken.None);
+                }
             }
         }
     }
